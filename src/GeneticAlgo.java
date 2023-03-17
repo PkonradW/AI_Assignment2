@@ -1,9 +1,8 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Scanner;
-import java.util.Random;
+import java.time.Duration;
+import java.util.*;
 import java.lang.Math;
-import java.util.Timer;
+import java.util.concurrent.TimeUnit;
+
 public class GeneticAlgo {
     public static void main(String[] args) {
         int n = getN();
@@ -16,7 +15,7 @@ public class GeneticAlgo {
             ArrayList<Integer[]> population = new ArrayList<>();
             ArrayList<Integer[]> maxList = new ArrayList<>();
 
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < n; i++) {
                 population.add(new Integer[n]);
                 for (int j = 0; j < n; j++) {
                     population.get(i)[j] = random.nextInt(n);
@@ -27,7 +26,7 @@ public class GeneticAlgo {
                 Integer[] x = selection(population);
                 Integer[] y = selection(population);
                 Integer[] child = reproduce(x, y);
-                if (random.nextInt(100) > 95) {
+                if (random.nextInt(100) <= 50) {
                     mutate(child);
                 }
                 population.remove(population.indexOf(getWorstFit(population)));
@@ -36,9 +35,19 @@ public class GeneticAlgo {
                 maxList.add(getBestFit(population));
             }
             Integer[] solution = getBestFit(population);
-            System.out.println("found it after " + iteration + " iterations. looks like this: ");
+            System.out.println("Solution was found after " + iteration + " iterations. Fitness value:" + getFitness(solution));
             printResults(solution);
-            System.out.println("elapsed time: " + (System.currentTimeMillis() - startTime) + "ms");
+            long finishTime = System.currentTimeMillis();
+            Duration duration = Duration.ofMillis(finishTime-startTime);
+            long minutes = duration.toMinutesPart();
+            long seconds = duration.toSecondsPart();
+            long ms = duration.toMillisPart();
+            System.out.println("elapsed time (MM:SS:MS): " +minutes+ ":"+seconds+":"+ms);
+            System.out.println("All fitness values within population: ");
+            for (Integer[] individual : population) {
+                System.out.print(getFitness(individual) + ", ");
+            }
+            System.out.println();
             n = getN();
         }
 
@@ -47,11 +56,11 @@ public class GeneticAlgo {
         for (int i : solution) {
             StringBuilder rowBuilder = new StringBuilder();
             for (int j=0; j < i ; j++){
-                rowBuilder.append('_');
+                rowBuilder.append("_ ");
             }
             rowBuilder.append('Q');
             for (int j=i+1; j < solution.length; j++) {
-                rowBuilder.append('_');
+                rowBuilder.append(" _");
             }
             System.out.println(rowBuilder);
         }
@@ -82,6 +91,7 @@ public class GeneticAlgo {
         }
         return fitness;
     }
+    // I know this is bad, but it's fine with small populations so I'm keeping it
     public static Integer[] getBestFit(ArrayList<Integer[]> population){
         Integer[] bestFit = population.get(0);
         for(Integer[] element : population){
@@ -106,13 +116,13 @@ public class GeneticAlgo {
      *     Has a % chance of returning any element in population according to its fitness.
      *     This is accomplished by assigning a normalized value to each element based on
      *     fitness such that when a random element is chosen, it is more likely to select
-     *     one with a higher fitness.
+     *     one with a higher fitness. I'm not sure how well this works out in practice.
      * </p>
      * @param population
      * @return element of population
      */
     public static Integer[] selection(ArrayList<Integer[]> population){
-        int randomMax = 1000000000;
+        int randomMax = 100000;
         Random rand = new Random();
         int[] fitnessArray = new int[population.size()];
         int fitSum = 0;
@@ -120,7 +130,7 @@ public class GeneticAlgo {
             fitnessArray[i] = getFitness(population.get(i));
             fitSum += getFitness(population.get(i));
         }
-        int[] probArray = new int[fitnessArray.length];
+        long[] probArray = new long[fitnessArray.length];
         for (int i=0; i<fitnessArray.length; i++) {
             probArray[i] = (fitnessArray[i] * randomMax);
             probArray[i] = probArray[i] / fitSum;
